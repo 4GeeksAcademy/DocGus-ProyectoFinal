@@ -1,0 +1,10 @@
+.btn-light-custom {
+  background-color: #f8f9fa;
+  color: #212529;
+  transition: background-color 0.3s ease;
+}
+
+.btn-light-custom:hover {
+  background-color: #28a745; /* verde llamativo */
+  color: white;
+}
