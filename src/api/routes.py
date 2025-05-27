@@ -1,19 +1,18 @@
-from flask import request, jsonify, Blueprint
+from flask import request, jsonify, Blueprint 
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import timedelta
-from api.models import db, User, MedicalFile  # Asegúrate de importar estos modelos
+from api.models import db, User, MedicalFile
 from api.utils import APIException
-from flask_cors import CORS
-
 
 api = Blueprint('api', __name__)
-CORS(api)
 
 # REGISTRO
 @api.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
+    if not data:
+        raise APIException("El cuerpo de la solicitud debe ser JSON", status_code=400)
 
     required_fields = ["names", "first_surname", "email", "password", "birth_day", "role"]
     for field in required_fields:
@@ -65,8 +64,7 @@ def private():
     user = User.query.get(current_user_id)
     return jsonify({"msg": "Acceso autorizado", "user": user.serialize()}), 200
 
-
-# ENDPOINT PARA VER EXPEDIENTES MÉDICOS SEGÚN ROL
+# Enpoint para visualizar expedientes segun el rol
 @api.route('/medical_files', methods=['GET'])
 @jwt_required()
 def get_medical_files():
@@ -76,23 +74,23 @@ def get_medical_files():
     if not user:
         raise APIException("Usuario no encontrado", status_code=404)
     
-    files={}
+    files = {}
 
-    # PACIENTE estudiante y profesional: su expediente
+    if user.role == "administrador":
+        all_files = MedicalFile.query.all()
+        files["all_files"] = [file.serialize() for file in all_files]
+        return jsonify(files), 200
+
     own_file = MedicalFile.query.filter_by(user_id=user.id).first()
-    files["own_file"]=own_file.serialize()
+    files["own_file"] = own_file.serialize() if own_file else None
 
-    # ESTUDIANTE: expedientes que él mismo creó
-    if user.role == "estudiante" or user.rol=="profesional":
+    if user.role in ["estudiante", "profesional"]:
         created_files = MedicalFile.query.filter_by(created_by=user.id).all()
-        files["created_files"]=[file.serialize() for file in created_files]
+        files["created_files"] = [file.serialize() for file in created_files]
 
-    # PROFESIONAL: los propios y los de estudiantes autorizados
     if user.role == "profesional":
-        # suprvisados
         supervised_files = MedicalFile.query.filter_by(supervised_by=user.id).all()
-        files["supervised_files"]=[file.serialize() for file in supervised_files]
-
-
+        files["supervised_files"] = [file.serialize() for file in supervised_files]
 
     return jsonify(files), 200
+

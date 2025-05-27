@@ -32,7 +32,7 @@ db = SQLAlchemy()                                                               
 # # RESUMEN: Representa a los usuarios del sistema. Puede ser un administrador, profesional o paciente. (Estudiante????)
 # # RESUMEN: Se crean dos enumeraciones para asegurar que ciertos campos solo tengan valores válidos: rol de usuario y sexo.
 class UserRole(str, enum.Enum):    ## Define roles posibles de usuario
-    admin = "admin"                ## Usuario administrador
+    admin = "administrador"                ## Usuario administrador
     profesional = "profesional"    ## Usuario profesional de la salud
     paciente = "paciente"          ## Usuario paciente
     estudiante = "estudiante"      ## Usuario estudiante                 ## Define los tipos posibles de sexo biologico y alguna variedad anatomica o psicologica

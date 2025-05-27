@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 
 export const Home = () => {
   return (
+    <div>
     <div className="container-fluid min-vh-100 d-flex flex-column" style={{ backgroundColor: "#800000", color: "#fff" }}>
       {/* Header */}
       <header className="py-4 border-bottom border-light">
@@ -77,5 +78,8 @@ export const Home = () => {
         </div>
       </main>
     </div>
+    </div>
   );
 };
+
+
