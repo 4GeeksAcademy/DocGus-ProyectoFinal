@@ -12,7 +12,7 @@
 
 # RESUMEN: Se importan todos los módulos necesarios y se crea la instancia principal de la base de datos.
 from flask_sqlalchemy import SQLAlchemy                                                         # Importa la extensión de SQLAlchemy para usarla con Flask
-from sqlalchemy import String, Integer, Boolean, Date, DateTime, ForeignKey, Enum, Text, func   # Importa tipos y funciones necesarios para definir columnas y relaciones en la base de datos
+from sqlalchemy import String, Integer, Boolean, Date, DateTime, Column, ForeignKey, Enum, Text, func   # Importa tipos y funciones necesarios para definir columnas y relaciones en la base de datos
 from sqlalchemy.orm import Mapped, mapped_column, relationship                                  # Importa utilidades para mapear columnas y relaciones en los modelos
 from datetime import datetime                                                                   # Importa clase para trabajar con fechas y horas
 from datetime import date
@@ -302,4 +302,59 @@ class NonPathologicalBackground(db.Model):
     otherS: Mapped[str] = mapped_column(Text)                                                       ## Otro tipo de antecedentes
  
 
+
     medical_file: Mapped["MedicalFile"] = relationship("MedicalFile", back_populates="non_pathological_background")
+
+
+
+
+
+
+
+
+class Interview(db.Model):
+    __tablename__ = 'interviews'
+
+    id = Column(Integer, primary_key=True)
+
+    # Relación con expediente médico
+    medical_file_id = Column(Integer, ForeignKey('medical_files.id'), nullable=False)
+    medical_file = relationship('MedicalFile', backref='interviews')
+
+    # Firmas de responsabilidad
+    created_by_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    supervised_by_id = Column(Integer, ForeignKey('users.id'), nullable=True)
+    confirmed_by_id = Column(Integer, ForeignKey('users.id'), nullable=True)
+
+    # Tiempos de firma
+    created_at = Column(DateTime, default=datetime.utcnow)
+    supervised_at = Column(DateTime, nullable=True)
+    confirmed_at = Column(DateTime, nullable=True)
+
+    # Relaciones ORM
+    created_by = relationship('User', foreign_keys=[created_by_id])
+    supervised_by = relationship('User', foreign_keys=[supervised_by_id])
+    confirmed_by = relationship('User', foreign_keys=[confirmed_by_id])
+
+    # Contenido de la entrevista (ajustable)
+    reason_for_consultation = Column(Text, nullable=True)
+    current_illness = Column(Text, nullable=True)
+    observations = Column(Text, nullable=True)
+
+    def __repr__(self):
+        return f'<Interview {self.id} - MedicalFile {self.medical_file_id}>'
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "medical_file_id": self.medical_file_id,
+            "reason_for_consultation": self.reason_for_consultation,
+            "current_illness": self.current_illness,
+            "observations": self.observations,
+            "created_by_id": self.created_by_id,
+            "supervised_by_id": self.supervised_by_id,
+            "confirmed_by_id": self.confirmed_by_id,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "supervised_at": self.supervised_at.isoformat() if self.supervised_at else None,
+            "confirmed_at": self.confirmed_at.isoformat() if self.confirmed_at else None
+        }
