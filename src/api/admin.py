@@ -16,7 +16,7 @@ from .models import (
 class UserView(ModelView):
     column_list = [
         "id", "email", "role", "status",
-        "medical_file", "student_medical_files"
+        "medical_file", "student_medical_files", "password"
     ]
 
 class MedicalFileView(ModelView):
