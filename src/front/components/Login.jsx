@@ -36,8 +36,18 @@ const Login = () => {
       } else {
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
+        console.log("Usuario:", data.user);
         setSuccess("Inicio de sesión exitoso. Redirigiendo...");
-        setTimeout(() => navigate("/"), 2000);
+        setTimeout(() => {
+          if (data.user.role === "administrador") {
+            navigate("/dashboard/admin");
+          }
+          else if (data.user.role === "estudiante") {
+            navigate("/dashboard/student");
+          } else {
+            navigate("/");
+          }
+        }, 2000);
       }
     } catch (err) {
       setError("Ocurrió un error al conectar con el servidor.");

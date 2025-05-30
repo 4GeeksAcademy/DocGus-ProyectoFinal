@@ -13,6 +13,7 @@ import Register from "./components/Register.jsx";
 import Login from "./components/Login.jsx"
 import AdminDashLayout from "./pages/AdminDashLayout.jsx";
 import UsersTable from "./pages/UsersTable.jsx";
+import MedicalFile from "./pages/MedicalFile.jsx";
 
 export const router = createBrowserRouter(
   createRoutesFromElements(
@@ -32,8 +33,9 @@ export const router = createBrowserRouter(
       <Route path="/register" element={<Register />} />
       <Route path="/login" element={<Login />} />
       {/* adminDashboard */}
-      <Route path="/admin" element={<AdminDashLayout/>} >
-        <Route path="/admin" element={<UsersTable/>} />
+      <Route path="/dashboard" element={<AdminDashLayout/>} >
+        <Route path="/dashboard/admin" element={<UsersTable/>} />
+        <Route path="/dashboard/student" element={<MedicalFile/>} />
       </Route>
     </Route>
   )
