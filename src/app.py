@@ -7,7 +7,7 @@ from flask_migrate import Migrate
 from flask_swagger import swagger
 from flask_jwt_extended import JWTManager
 from dotenv import load_dotenv
-from flask_cors import CORS
+# from flask_cors import CORS
 from api.utils import APIException, generate_sitemap
 from api.models import db
 from api.routes import api
@@ -26,9 +26,9 @@ app = Flask(__name__)
 app.url_map.strict_slashes = False
 
 # 🔧 Activar CORS (modo seguro solo para desarrollo)
-CORS(app, supports_credentials=True, resources={
-    r"/api/*": {"origins": "https://fluffy-space-fiesta-pjj79gw5vjv527745-3000.app.github.dev"}
-})
+# CORS(app, supports_credentials=True, resources={
+#     r"/api/*": {"origins": "https://fluffy-space-fiesta-pjj79gw5vjv527745-3000.app.github.dev"}
+# })
 
 
 

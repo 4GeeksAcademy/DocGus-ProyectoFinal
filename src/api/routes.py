@@ -4,9 +4,11 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from api.models import db, User, MedicalFile, PersonalData, PathologicalBackground, FamilyBackground, GynecologicalBackground, NonPathologicalBackground, SexType
 from api.utils import APIException
 from datetime import datetime, timezone, timedelta
+from flask_cors import CORS
 
 api = Blueprint('api', __name__)
-
+# Allow CORS requests to this API
+CORS(api)
 # REGISTRO
 @api.route('/register', methods=['POST'])
 def register():
