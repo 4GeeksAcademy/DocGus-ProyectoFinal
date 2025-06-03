@@ -92,6 +92,7 @@ class User(db.Model):
             "second_surname": self.second_surname,
             "birth_day": self.birth_day.isoformat(),
             "profession": self.profession,
+            "medical_file": self.medical_file.serialize() if self.medical_file else None
         }
 
     def __repr__(self):

@@ -24,7 +24,7 @@ const AdminDashLayout = () => {
   return (
     <div className="container-fluid min-vh-100 d-flex" style={{ backgroundColor: "#800000" }}>
       <div className="d-flex flex-column col-12 col-md-3 p-3" style={{ backgroundColor: "#343a40", borderRight: "1px solid #fff" }}>
-        <h4 className="text-white text-center mb-4">Panel Admin</h4>
+        <h4 className="text-white text-center mb-4">Panel</h4>
         <Link to="/admin" style={location.pathname === "/admin" ? activeLinkStyle : linkStyle}>
           Usuarios
         </Link>

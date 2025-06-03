@@ -80,7 +80,18 @@ def get_users():
     return jsonify([user.serialize() for user in users]), 200
 
 
+# Endpoint para obtener información de todos los usuarios (solo para administradores)
+@api.route('/student/patients', methods=['GET'])
+@jwt_required()
+def get_student_patients():
+    current_user_id = get_jwt_identity()
+    current_user = User.query.get(current_user_id)
 
+    if not current_user or current_user.role.value != "estudiante":
+        raise APIException("Acceso no autorizado", status_code=403)
+
+    users = User.query.filter_by(role="paciente").all()
+    return jsonify([user.serialize() for user in users]), 200
 
 
 

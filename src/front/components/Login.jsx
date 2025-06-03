@@ -44,7 +44,11 @@ const Login = () => {
           }
           else if (data.user.role === "estudiante") {
             navigate("/dashboard/student");
-          } else {
+          } 
+           else if (data.user.role === "paciente") {
+            navigate("/dashboard/patient");
+          } 
+            else {
             navigate("/");
           }
         }, 2000);
