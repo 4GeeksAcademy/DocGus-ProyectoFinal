@@ -16,6 +16,7 @@ import UsersTable from "./pages/UsersTable.jsx";
 import StudentDash from "./pages/StudentDash.jsx";
 import ProfessionalDash from "./pages/ProfessionalDash.jsx";
 import PatientDash from "./pages/PatientDash.jsx";
+import BackGroundInterview from "./pages/BackGroundInterview.jsx";
 
 export const router = createBrowserRouter(
   createRoutesFromElements(
@@ -38,6 +39,7 @@ export const router = createBrowserRouter(
       <Route path="/dashboard" element={<AdminDashLayout/>} >
         <Route path="/dashboard/admin" element={<UsersTable/>} />
         <Route path="/dashboard/student" element={<StudentDash/>} />
+        <Route path="/dashboard/student/interview/:medicalFileId" element={<BackGroundInterview/>} />
         <Route path="/dashboard/professional" element={<ProfessionalDash/>} />
         <Route path="/dashboard/patient" element={<PatientDash/>} />
       </Route>

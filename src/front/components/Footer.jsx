@@ -1,11 +1,11 @@
 export const Footer = () => (
   <footer
-    className="text-center py-4 border-top text-white"
+    className="text-center py-4 border-top text-white bg-body-tertiary"
     style={{
-      backgroundColor: "#7A1E2B",
       fontFamily: "'Playfair Display', serif",
       fontSize: "0.9rem",
     }}
+    data-bs-theme="dark"
   >
     <div className="container">
       <p className="mb-1">

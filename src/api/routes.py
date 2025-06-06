@@ -1,7 +1,7 @@
 from flask import request, jsonify, Blueprint
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
-from api.models import db, User, MedicalFile, PersonalData, PathologicalBackground, FamilyBackground, GynecologicalBackground, NonPathologicalBackground, SexType
+from api.models import db, User, MedicalFile, FileStatus, PersonalData, PatientData, PathologicalBackground, FamilyBackground, GynecologicalBackground, NonPathologicalBackground, SexType
 from api.utils import APIException
 from datetime import datetime, timezone, timedelta
 from flask_cors import CORS
@@ -11,20 +11,16 @@ api = Blueprint('api', __name__)
 # Allow CORS requests to this API
 CORS(api)
 
-# REGISTRO
 @api.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
     if not data:
-        raise APIException(
-            "El cuerpo de la solicitud debe ser JSON", status_code=400)
+        raise APIException("El cuerpo de la solicitud debe ser JSON", status_code=400)
 
-    required_fields = ["names", "first_surname",
-                       "email", "password", "birth_day", "role"]
+    required_fields = ["first_name", "first_surname", "email", "password", "birth_day", "role", "phone"]
     for field in required_fields:
         if field not in data:
-            raise APIException(
-                f"Falta el campo requerido: {field}", status_code=400)
+            raise APIException(f"Falta el campo requerido: {field}", status_code=400)
 
     if User.query.filter_by(email=data["email"]).first():
         raise APIException("El correo ya está registrado", status_code=400)
@@ -32,22 +28,75 @@ def register():
     hashed_password = generate_password_hash(data["password"])
 
     new_user = User(
-        names=data["names"],
-        first_surname=data["first_surname"],
+        first_name=data.get("first_name", None),
+        second_name=data.get("second_name", None),
+        first_surname=data.get("first_surname", None),
         second_surname=data.get("second_surname"),
-        email=data["email"],
+        email=data.get("email", None),
         password=hashed_password,
-        birth_day=data["birth_day"],
-        profession=data.get("profession"),
-        role=data["role"],
-        sex=data.get("sex"),
-        phone=data.get("phone")
+        birth_day=data.get("birth_day", None),
+        role=data.get("role", None),
+        phone=data.get("phone", None)
     )
 
     db.session.add(new_user)
     db.session.commit()
 
-    return jsonify({"msg": "Usuario registrado exitosamente"}), 201
+    # Si el usuario es paciente, crear expediente y datos personales
+    if new_user.role == "paciente" or (hasattr(new_user.role, "value") and new_user.role.value == "paciente"):
+        # 2. Crear datos personales asociados
+        personal_data = PersonalData(
+            user_id=new_user.id,
+            sex=data.get("sex", None),
+            address="",  # Campo opcional, puedes pedirlo luego
+                ) 
+        db.session.add(personal_data)
+        db.session.commit()
+
+
+    return jsonify({
+        "msg": "Usuario registrado exitosamente",
+        "user": new_user.serialize()
+    }), 201
+
+
+
+
+# Endpoint para obtener los datos personales de un usuario por su user_id.
+# Requiere autenticación JWT.
+# Devuelve un JSON con los datos personales almacenados en la tabla PersonalData.
+@api.route('/personal_data', methods=['GET'])
+@jwt_required()
+def get_personal_data():
+    user_id = int(get_jwt_identity())
+    """
+    Devuelve los datos personales asociados a un usuario.
+    """
+    personal_data = PersonalData.query.filter_by(user_id=user_id).first()
+    if not personal_data:
+        return jsonify({"error": "Datos personales no encontrados"}), 404
+    return jsonify(personal_data.serialize()), 200
+ 
+
+#Este endpoint es solo para que un estudiante tome un expediente vacío
+@api.route('/student/files/<int:file_id>/take', methods=['POST'])
+@jwt_required()
+def take_file(file_id):
+    current_user_id = get_jwt_identity()
+
+    file = MedicalFile.query.get(file_id)
+
+    if not file:
+        return jsonify({"error": "Expediente no encontrado"}), 404
+
+    if file.status != FileStatus.EMPTY:
+        return jsonify({"error": "Expediente no disponible"}), 400
+
+    file.status = FileStatus.PROGRESS
+    file.created_by = current_user_id  # El estudiante que lo toma
+    db.session.commit()
+
+    return jsonify({"msg": "Expediente asignado al estudiante"}), 200
 
 # LOGIN
 @api.route('/login', methods=['POST'])
@@ -66,6 +115,7 @@ def login():
 
     return jsonify({"token": access_token, "user": user.serialize()}), 200
 
+
 # Endpoint para obtener información de todos los usuarios (solo para administradores)
 @api.route('/users', methods=['GET'])
 @jwt_required()
@@ -79,8 +129,9 @@ def get_users():
     users = User.query.all()
     return jsonify([user.serialize() for user in users]), 200
 
-
-# Endpoint para obtener información de todos los usuarios (solo para administradores)
+# Endpoint para estudiantes: obtiene la lista de pacientes que aún no tienen expediente médico asignado.
+# Se usa en el flujo de selección de pacientes disponibles antes de iniciar un nuevo expediente.
+# Requiere autenticación y valida que el usuario sea un estudiante.
 @api.route('/student/patients', methods=['GET'])
 @jwt_required()
 def get_student_patients():
@@ -90,10 +141,8 @@ def get_student_patients():
     if not current_user or current_user.role.value != "estudiante":
         raise APIException("Acceso no autorizado", status_code=403)
 
-    users = User.query.filter_by(role="paciente").all()
+    users = User.query.filter_by(role="paciente", medical_file=None).all()
     return jsonify([user.serialize() for user in users]), 200
-
-
 
 
 # RUTA PROTEGIDA
@@ -104,7 +153,22 @@ def private():
     user = User.query.get(current_user_id)
     return jsonify({"msg": "Acceso autorizado", "user": user.serialize()}), 200
 
+# Endpoint para obtener archivos médicos vacíos (solo para estudiantes
+
+@api.route('/student/files', methods=['GET'])
+def get_files_by_status():
+    status = request.args.get('status', 'EMPTY')
+    # Convertir el string a Enum para evitar errores de tipo
+    try:
+        status_enum = FileStatus[status]
+    except KeyError:
+        return jsonify({"error": "Status inválido"}), 400
+    files = MedicalFile.query.filter_by(status=status_enum).all()
+    return jsonify([file.serialize() for file in files]), 200
+
 # Enpoint para visualizar expedientes segun el rol
+
+
 @api.route('/medical_files', methods=['GET'])
 @jwt_required()
 def get_medical_files():
@@ -137,180 +201,10 @@ def get_medical_files():
     return jsonify(files), 200
 
 # Endpoint para crear un expediente médico
-# Crea un expediente medico y asigna el usuario actual como creador, 
+# Crea un expediente medico y asigna el usuario actual como creador,
 # y el usuario que lo supervisa si es un profesional
 # el endpoint recibe el id del paciente
 # recibe por body la informacion del paciente que generara un registro en cada una de las tablas vinculadas: PersonalData, PathologicalBackground, FamilyBackground, GynecologicalBackground (en el caso de los pacientes femenino), NonPathologicalBackground)
-@api.route("/medical-file", methods=["POST"])
-@jwt_required()
-def create_medical_file():
-    """
-    body example:
-    {
-        "user_id": 1,
-        "created_by": 2,
-        "personal_data": {
-            "full_name": "Juan Perez",
-            "paternal_surname": "Perez",
-            "maternal_surname": "Gomez","sex": "masculino",
-            "birth_date": "1990-01-01",
-            "address": "Calle Falsa 123",
-            "phone": "123456789"
-        },
-        "pathological": {  
-            "personal_diseases": "Ninguna",
-            "medications": "Ninguno",
-            "hospitalizations": "Ninguna",
-            "surgeries": "Ninguna",
-            "traumatisms": "Ninguno",
-            "transfusions": "Ninguna",
-            "allergies": "Ninguna",
-            "others": "Ninguno"
-        },
-        "family": {
-            "hypertension": false,
-            "diabetes": false,
-            "cancer": false,
-            "heart_disease": false,
-            "kidney_disease": false,
-            "liver_disease": false,
-            "mental_illness": false,
-            "congenital_malformations": false,
-            "others": "Ninguno"
-        },
-        "non_pathological": {
-            "education_level": "Secundaria",
-            "economic_activity": "Estudiante",
-            "marital_status": "Soltero",
-            "dependents": 0,
-            "occupation": "Estudiante",
-            "recent_travels": "Ninguno",
-            "social_activities": "Ninguna",
-            "exercise": "Ninguno",
-            "diet_supplements": "Ninguno",
-            "hygiene": "Buena",
-            "tattoos": false,
-            "piercings": false,
-            "hobbies": "Leer",
-            "tobacco_use": false,
-            "alcohol_use": false,
-            "recreational_drugs": false,
-            "addictions": "Ninguna",
-            "otherS": "Ninguno"
-        },
-        "gynecological": {
-            "menarche_age": 12,
-            "pregnancies": 0,
-            "births": 0,
-            "c_sections": 0,
-            "abortions": 0,
-            "contraceptive_method": "Ninguno",
-            "others": "Ninguno"
-        }           
-    }
-    """
-    data = request.get_json()
-
-    # 1. Crear el expediente médico
-    medical_file = MedicalFile(
-        user_id=data["user_id"],
-        supervised_by=data["supervised_by"],
-        supervised_at=datetime.now(timezone.utc),
-        created_by=data["created_by"],
-        created_at=datetime.now(timezone.utc),
-        confirmed_at=datetime.now(timezone.utc),
-        status="revision"
-    )
-    db.session.add(medical_file)
-    db.session.flush()  # Para obtener el ID antes de commit
-
-    # 2. Crear los datos personales
-    personal_data = PersonalData(
-        user_id=data["user_id"],
-        medical_file_id=medical_file.id,
-        full_name=data["personal_data"]["full_name"],
-        paternal_surname=data["personal_data"]["paternal_surname"],
-        maternal_surname=data["personal_data"].get("maternal_surname"),
-        sex=data["personal_data"]["sex"],
-        birth_date=data["personal_data"]["birth_date"],
-        address=data["personal_data"]["address"],
-        phone=data["personal_data"]["phone"]
-    )
-    db.session.add(personal_data)
-
-    # 3. Crear antecedentes patológicos
-    pathological = PathologicalBackground(
-        user_id=data["user_id"],
-        medical_file_id=medical_file.id,
-        personal_diseases=data["pathological"]["personal_diseases"],
-        medications=data["pathological"]["medications"],
-        hospitalizations=data["pathological"]["hospitalizations"],
-        surgeries=data["pathological"]["surgeries"],
-        traumatisms=data["pathological"]["traumatisms"],
-        transfusions=data["pathological"]["transfusions"],
-        allergies=data["pathological"]["allergies"],
-        others=data["pathological"]["others"]
-    )
-    db.session.add(pathological)
-
-    # 4. Crear antecedentes familiares
-    family = FamilyBackground(
-        user_id=data["user_id"],
-        medical_file_id=medical_file.id,
-        hypertension=data["family"]["hypertension"],
-        diabetes=data["family"]["diabetes"],
-        cancer=data["family"]["cancer"],
-        heart_disease=data["family"]["heart_disease"],
-        kidney_disease=data["family"]["kidney_disease"],
-        liver_disease=data["family"]["liver_disease"],
-        mental_illness=data["family"]["mental_illness"],
-        congenital_malformations=data["family"]["congenital_malformations"],
-        others=data["family"]["others"]
-    )
-    db.session.add(family)
-
-    # 5. Crear antecedentes no patológicos
-    non_pathological = NonPathologicalBackground(
-        user_id=data["user_id"],
-        medical_file_id=medical_file.id,
-        education_level=data["non_pathological"]["education_level"],
-        economic_activity=data["non_pathological"]["economic_activity"],
-        marital_status=data["non_pathological"]["marital_status"],
-        dependents=data["non_pathological"]["dependents"],
-        occupation=data["non_pathological"]["occupation"],
-        recent_travels=data["non_pathological"]["recent_travels"],
-        social_activities=data["non_pathological"]["social_activities"],
-        exercise=data["non_pathological"]["exercise"],
-        diet_supplements=data["non_pathological"]["diet_supplements"],
-        hygiene=data["non_pathological"]["hygiene"],
-        tattoos=data["non_pathological"]["tattoos"],
-        piercings=data["non_pathological"]["piercings"],
-        hobbies=data["non_pathological"]["hobbies"],
-        tobacco_use=data["non_pathological"]["tobacco_use"],
-        alcohol_use=data["non_pathological"]["alcohol_use"],
-        recreational_drugs=data["non_pathological"]["recreational_drugs"],
-        addictions=data["non_pathological"]["addictions"],
-        otherS=data["non_pathological"]["otherS"]
-    )
-    db.session.add(non_pathological)
-
-    # 6. Si es femenino, crear antecedentes ginecológicos
-    if data["personal_data"]["sex"] == SexType.femenino.value:
-        gyneco = GynecologicalBackground(
-            user_id=data["user_id"],
-            medical_file_id=medical_file.id,
-            menarche_age=data["gynecological"]["menarche_age"],
-            pregnancies=data["gynecological"]["pregnancies"],
-            births=data["gynecological"]["births"],
-            c_sections=data["gynecological"]["c_sections"],
-            abortions=data["gynecological"]["abortions"],
-            contraceptive_method=data["gynecological"]["contraceptive_method"],
-            others=data["gynecological"]["others"]
-        )
-        db.session.add(gyneco)
-
-    db.session.commit()
-    return jsonify({"msg": "Expediente médico creado", "medical_file_id": medical_file.id}), 201
 
 
 # Endpoint para eliminar un usuario (solo administradores)
@@ -323,4 +217,40 @@ def delete_user(user_id):
     db.session.delete(user)
     db.session.commit()
     return jsonify({"message": "Usuario eliminado"}), 200
+   
 
+@api.route('/backgrounds', methods=['POST'])
+def save_backgrounds():
+    data = request.get_json()
+
+    medical_file_id = data.get("medical_file_id")
+    if not medical_file_id:
+        return jsonify({"error": "Medical file ID is required"}), 400
+
+    medical_file = MedicalFile.query.get(medical_file_id)
+    if not medical_file:
+        return jsonify({"error": "Medical file not found"}), 404
+
+    # 1. Pathological
+    pathological_data = data.get("patological_background", {})
+    pathological = PathologicalBackground(medical_file_id=medical_file_id, **pathological_data)
+    db.session.add(pathological)
+
+    # 2. Family
+    family_data = data.get("family_background", {})
+    family = FamilyBackground(medical_file_id=medical_file_id, **family_data)
+    db.session.add(family)
+
+    # 3. Non-Pathological
+    nonpath_data = data.get("non_pathological_background", {})
+    nonpath = NonPathologicalBackground(medical_file_id=medical_file_id, **nonpath_data)
+    db.session.add(nonpath)
+
+    # 4. Gynecological
+    gyneco_data = data.get("gynecological_background", {})
+    gyneco = GynecologicalBackground(medical_file_id=medical_file_id, **gyneco_data)
+    db.session.add(gyneco)
+
+    db.session.commit()
+
+    return jsonify({"msg": "Antecedentes guardados exitosamente"}), 201

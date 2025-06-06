@@ -7,6 +7,9 @@ from .models import (
     User,
     MedicalFile,
     PersonalData,
+    PatientData,
+    StudentData,
+    ProfessionalData,
     PathologicalBackground,
     FamilyBackground,
     GynecologicalBackground,
@@ -16,7 +19,7 @@ from .models import (
 class UserView(ModelView):
     column_list = [
         "id", "email", "role", "status",
-        "medical_file", "student_medical_files", "password"
+        "first_name", "second_name", "first_surname", "second_surname", "birth_day",  "password", "phone", 
     ]
 
 class MedicalFileView(ModelView):
@@ -27,11 +30,24 @@ class MedicalFileView(ModelView):
         "family_background", "pathological_background", "personal_data"
     ]
 
+class PatientDataView(ModelView):
+    column_list = [
+        "id", "user_id", "medical_file_id"
+    ]
+
 class PersonalDataView(ModelView):
     column_list = [
-        "id", "user_id", "medical_file_id",
-        "full_name", "paternal_surname", "maternal_surname",
-        "sex", "birth_date", "address", "phone"
+        "id", "user_id", "sex", "address"
+    ]
+
+class StudentDataView(ModelView):
+    column_list = [
+        "id", "user_id", "academic_grade"
+    ]
+
+class ProfessionalDataView(ModelView):
+    column_list = [
+        "id", "user_id", "profession"
     ]
 
 class PathologicalBackgroundView(ModelView):
@@ -77,6 +93,9 @@ def setup_admin(app):
     admin.add_view(UserView(User, db.session))
     admin.add_view(MedicalFileView(MedicalFile, db.session))
     admin.add_view(PersonalDataView(PersonalData, db.session))
+    admin.add_view(PatientDataView(PatientData, db.session))
+    admin.add_view(StudentDataView(StudentData, db.session))
+    admin.add_view(ProfessionalDataView(ProfessionalData, db.session))
     admin.add_view(PathologicalBackgroundView(PathologicalBackground, db.session))
     admin.add_view(FamilyBackgroundView(FamilyBackground, db.session))
     admin.add_view(GynecologicalBackgroundView(GynecologicalBackground, db.session))

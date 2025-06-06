@@ -9,7 +9,8 @@ const Register = () => {
 
 
   const [formData, setFormData] = useState({
-    names: "",
+    first_name: "",
+    second_name: "",
     first_surname: "",
     second_surname: "",
     birth_day: "",
@@ -64,18 +65,20 @@ const Register = () => {
   return (
     <div className="container-fluid min-vh-100 d-flex align-items-center justify-content-center px-3" style={{ backgroundColor: "#800000", color: "#fff" }}>
       <div className="card p-4 w-100" style={{ maxWidth: "900px", backgroundColor: "#343a40", border: "1px solid #fff" }}>
-        <h2 className="text-center text-white mb-4">Registro de Usuario</h2>
+        <h2 className="text-center text-white mb-4">Registro de {formData.role }</h2>
 
         <form onSubmit={handleSubmit}>
           <div className="row g-3">
             {[
-              { label: "Nombres", name: "names", type: "text", required: true },
+              { label: "Primer Nombre", name: "first_name", type: "text", required: true },
+              { label: "Segundo Nombre", name: "second_name", type: "text"},
               { label: "Primer Apellido", name: "first_surname", type: "text", required: true },
               { label: "Segundo Apellido", name: "second_surname", type: "text" },
               { label: "Fecha de Nacimiento", name: "birth_day", type: "date", required: true },
               { label: "Sexo", name: "sex", type: "select", options: ["masculino", "femenino", "otro"] },
-              { label: "Rol", name: "role", type: "text", readOnly: true },
-              { label: "Profesión", name: "profession", type: "text" },
+              ...(roleFromURL == "profesional" ? [
+                { label: "Profesión", name: "profession", type: "text", required: true },
+              ]: []),
               { label: "Teléfono", name: "phone", type: "tel" },
               { label: "Correo Electrónico", name: "email", type: "email", required: true },
               { label: "Contraseña", name: "password", type: "password", required: true }
