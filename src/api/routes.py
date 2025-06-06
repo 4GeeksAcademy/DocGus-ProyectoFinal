@@ -1,3 +1,4 @@
+# Importa las herramientas JWT para manejar autenticación
 from flask import request, jsonify, Blueprint
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -233,22 +234,22 @@ def save_backgrounds():
 
     # 1. Pathological
     pathological_data = data.get("patological_background", {})
-    pathological = PathologicalBackground(medical_file_id=medical_file_id, **pathological_data)
+    pathological = PathologicalBackground(user_id=medical_file.user_id, medical_file_id=medical_file_id, **pathological_data)
     db.session.add(pathological)
 
     # 2. Family
     family_data = data.get("family_background", {})
-    family = FamilyBackground(medical_file_id=medical_file_id, **family_data)
+    family = FamilyBackground(user_id=medical_file.user_id, medical_file_id=medical_file_id, **family_data)
     db.session.add(family)
 
     # 3. Non-Pathological
     nonpath_data = data.get("non_pathological_background", {})
-    nonpath = NonPathologicalBackground(medical_file_id=medical_file_id, **nonpath_data)
+    nonpath = NonPathologicalBackground(user_id=medical_file.user_id, medical_file_id=medical_file_id, **nonpath_data)
     db.session.add(nonpath)
 
     # 4. Gynecological
     gyneco_data = data.get("gynecological_background", {})
-    gyneco = GynecologicalBackground(medical_file_id=medical_file_id, **gyneco_data)
+    gyneco = GynecologicalBackground(user_id=medical_file.user_id, medical_file_id=medical_file_id, **gyneco_data)
     db.session.add(gyneco)
 
     db.session.commit()

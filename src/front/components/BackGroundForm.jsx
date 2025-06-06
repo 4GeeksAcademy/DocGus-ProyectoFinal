@@ -1,8 +1,10 @@
+// Importa los hooks necesarios desde React
+
 import React, { useEffect, useState } from "react";
 
-
-const initialState = {
-  patological_background: {
+// Estado inicial con estructura de los antecedentes médicos
+const initialState = {               
+  patological_background: {                      // Objeto Antecedentes Patologicos
     personal_diseases: "",
     medications: "",
     hospitalizations: "",
@@ -10,9 +12,9 @@ const initialState = {
     traumatisms: "",
     transfusions: "",
     allergies: "",
-    others_pathological: "",
+    others: "",
   },
-  family_background: {
+  family_background: {                          // Objeto Antecedentes Familiares    
     hypertension: false,
     diabetes: false,
     cancer: false,
@@ -21,9 +23,9 @@ const initialState = {
     liver_disease: false,
     mental_illness: false,
     congenital_malformations: false,
-    others_family: ""
+    others: ""
   },
-  non_pathological_background: {
+  non_pathological_background: {                 // Objeto Antecedentes No Patológicos 
     education_level: "",
     economic_activity: "",
     marital_status: "",
@@ -41,45 +43,60 @@ const initialState = {
     alcohol_use: "",
     recreational_drugs: "",
     addictions: "",
-    others_nonpath: "",
+    others: "",
   },
-  gynecological_background: {
+  gynecological_background: {                   // Objeto Antecedentes Ginecológicos
     menarche_age: "",
     pregnancies: "",
     births: "",
     c_sections: "",
     abortions: "",
     contraceptive_method: "",
-    others_gyneco: "",
+    others: "",
   }
 };
 
+
+
+// Componente principal del formulario. Recibe `initialData` y `medicalFileId` como props
 const BackgroundForm = ({initialData, medicalFileId }) => {
-  const [form, setForm] = useState(initialState);
+  const [form, setForm] = useState(initialState);                                   // Estado local que contiene el formulario completo
 
-  const handleChange = (e, obj) => {
-    const { name, value, type, checked } = e.target;
-    const val = type === "checkbox" ? checked : value;
-    setForm({ ...form, [obj]: { ...form[obj], [name]: value } });
-  };
+// Función que maneja los cambios en los inputs del formulario
+const handleChange = (e, section) => {
+  const { name, value, type, checked } = e.target;
+  const val = type === "checkbox" ? checked : value;
 
+  setForm((prevForm) => ({
+    ...prevForm,
+    [section]: {
+      ...prevForm[section],
+      [name]: val,
+    },
+  }));
+};
+
+
+// Función para manejar el envío del formulario  
   const handleSubmit = async (e) => {
-    const newFormData= { ...form, medical_file_id: medicalFileId };
-  e.preventDefault();
+    const newFormData= { ...form, medical_file_id: medicalFileId };                 // Agrega el ID del expediente
+  e.preventDefault();                                                               // Previene el comportamiento por defecto del formulario                          
 
+// Realiza una solicitud POST al backend con los datos
   try {
-    const response = await fetch(`${process.env.BACKEND_URL}/api/medical_background/${medicalFileId}`, {
+    const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/backgrounds`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`, // Si usas JWT
+        Authorization: `Bearer ${localStorage.getItem("token")}`,                   // Agrega el token si usas JWT
       },
-      body: JSON.stringify(newFormData),
+      body: JSON.stringify(newFormData),                                            // Convierte los datos a JSON
     });
 
-    const data = await response.json();
+    const data = await response.json();                                             // Obtiene la respuesta
 
-    if (response.ok) {
+// Muestra alertas dependiendo del resultado
+    if (response.ok) {                                                              // Si la respuesta es exitosa 
       alert("Antecedentes guardados correctamente.");
     } else {
       console.error(data);
@@ -91,57 +108,78 @@ const BackgroundForm = ({initialData, medicalFileId }) => {
   }
 };
 
-
+// useEffect se ejecuta cuando `initialData` cambia
   useEffect(() => {
     if (initialData) {
-      setForm({ ...initialState, ...initialData });
+      setForm({ ...initialState, ...initialData });                               // Carga datos iniciales en el formulario
     }
   }, [initialData]);
-console.log(form)
-  return (
+console.log(form)                                                                 // Para depuración: muestra el estado actual del formulario en consola
+
+
+
+
+// Formulario principal con clases de Bootstrap
+  return (                            
     <form onSubmit={handleSubmit} className="row p-4 rounded shadow-md max-w-5xl mx-auto" data-bs-theme="dark">
       <h2 className="text-2xl font-bold mb-4">Antecedentes Médicos del Paciente</h2>
 
+      
+      
+      
+      
       {/* ---------- PATHOLOGICAL BACKGROUND ---------- */}
       <h4 className="mt-4 mb-2 text-lg font-semibold">Antecedentes Patológicos</h4>
-      {["personal_diseases", "medications", "hospitalizations", "surgeries", "traumatisms", "transfusions", "allergies", "others_pathological"].map((field) => (
+      {["personal_diseases", "medications", "hospitalizations", "surgeries", "traumatisms", "transfusions", "allergies", "others"].map((field) => (
         <div key={field} className="mb-2 col-6">
           <label className="block">{field.replace(/_/g, " ").replace("others pathological", "Otros")}</label>
           <textarea name={field} value={form.patological_background[field]} onChange={(e)=> handleChange(e, "patological_background")} className="form-control" />
         </div>
       ))}
 
+
+
+
+
       {/* ---------- FAMILY BACKGROUND ---------- */}
       <h4 className="mt-4 mb-2 text-lg font-semibold">Antecedentes Familiares</h4>
       {["hypertension", "diabetes", "cancer", "heart_disease", "kidney_disease", "liver_disease", "mental_illness", "congenital_malformations"].map((field) => (
         <div key={field} className="form-check col-6 mb-2">
-          <input className="form-check-input" type="checkbox" name={field} checked={form.family_background[field]} onChange={(e)=> handleChange(e, " family_background")} />
+          <input className="form-check-input" type="checkbox" name={field} checked={form.family_background[field]} onChange={(e)=> handleChange(e,"family_background")} />
           <label className="form-check-label">{field.replace(/_/g, " ")}</label>
         </div>
       ))}
       <div className="mb-2 col-6">
         <label className="block">Otros antecedentes familiares</label>
-        <textarea name="others_family" value={form.others_family} onChange={(e)=> handleChange(e, " family_background")} className="form-control" />
+        <textarea name="others" value={form.others} onChange={(e)=> handleChange(e,"family_background")} className="form-control" />
       </div>
+
+
+
+
 
       {/* ---------- NON-PATHOLOGICAL BACKGROUND ---------- */}
       <h4 className="mt-4 mb-2 text-lg font-semibold">Antecedentes No Patológicos</h4>
-      {["education_level", "economic_activity", "marital_status", "dependents", "occupation", "recent_travels", "social_activities", "exercise", "diet_supplements", "hygiene", "hobbies", "tobacco_use", "alcohol_use", "recreational_drugs", "addictions", "others_nonpath"].map((field) => (
+      {["education_level", "economic_activity", "marital_status", "dependents", "occupation", "recent_travels", "social_activities", "exercise", "diet_supplements", "hygiene", "hobbies", "tobacco_use", "alcohol_use", "recreational_drugs", "addictions", "others"].map((field) => (
         <div key={field} className="mb-2 col-6">
           <label className="block">{field.replace(/_/g, " ").replace("others nonpath", "Otros")}</label>
-          <textarea name={field} value={form.non_pathological_background[field]} onChange={(e)=> handleChange(e, "non_patological_background")} className="form-control" />
+          <textarea name={field} value={form.non_pathological_background[field]} onChange={(e)=> handleChange(e, "non_pathological_background")} className="form-control" />
         </div>
       ))}
       {["tattoos", "piercings"].map((field) => (
         <div key={field} className="form-check col-6 mb-2">
-          <input className="form-check-input" type="checkbox" name={field} checked={form.non_pathological_background[field]} onChange={(e)=> handleChange(e, "non_patological_background")} />
+          <input className="form-check-input" type="checkbox" name={field} checked={form.non_pathological_background[field]} onChange={(e)=> handleChange(e, "non_pathological_background")} />
           <label className="form-check-label">{field.charAt(0).toUpperCase() + field.slice(1)}</label>
         </div>
       ))}
 
+
+
+
+
       {/* ---------- GYNECOLOGICAL BACKGROUND ---------- */}
       <h4 className="mt-4 mb-2 text-lg font-semibold">Antecedentes Ginecológicos</h4>
-      {["menarche_age", "pregnancies", "births", "c_sections", "abortions", "contraceptive_method", "others_gyneco"].map((field) => (
+      {["menarche_age", "pregnancies", "births", "c_sections", "abortions", "contraceptive_method", "others"].map((field) => (
         <div key={field} className="mb-2 col-6">
           <label className="block">{field.replace(/_/g, " ").replace("others gyneco", "Otros")}</label>
           <input type="text" name={field} value={form.gynecological_background[field]} onChange={(e)=> handleChange(e, "gynecological_background")} className="form-control" />
@@ -156,4 +194,9 @@ console.log(form)
   );
 };
 
+
+
+
+
+// Exporta el componente para poder usarlo en otras partes de la app
 export default BackgroundForm;

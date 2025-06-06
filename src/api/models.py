@@ -14,12 +14,6 @@ db = SQLAlchemy()                                                               
 
 
 
-
-
-
-
-
-
 # # -------------------- ENUMS PERSONALIZADOS --------------------
 # # RESUMEN: Representa a los usuarios del sistema. Puede ser un administrador, profesional o paciente. (Estudiante????)
 # # RESUMEN: Se crean dos enumeraciones para asegurar que ciertos campos solo tengan valores válidos: rol de usuario y sexo.
@@ -384,7 +378,7 @@ class NonPathologicalBackground(db.Model):
     alcohol_use: Mapped[str] = mapped_column(Text)                              # Consumo de alcohol
     recreational_drugs: Mapped[str] = mapped_column(Text)                       # Drogas recreativas
     addictions: Mapped[str] = mapped_column(Text)                               # Adicciones
-    otherS: Mapped[str] = mapped_column(Text)                                   # Otro tipo de antecedentes
+    others: Mapped[str] = mapped_column(Text)                                   # Otro tipo de antecedentes
 
     medical_file: Mapped["MedicalFile"] = relationship(
         "MedicalFile", back_populates="non_pathological_background")
