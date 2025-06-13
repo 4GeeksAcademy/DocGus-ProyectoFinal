@@ -1,5 +1,9 @@
-// Import necessary components and functions from react-router-dom.
+// La función principal es definir las rutas del frontend, 
+// qué componentes se deben renderizar cuando el usuario navega a una URL específica.
 
+
+
+// Import necessary components and functions from react-router-dom.
 import {
   createBrowserRouter,
   createRoutesFromElements,
@@ -20,18 +24,18 @@ import BackGroundInterview from "./pages/BackGroundInterview.jsx";
 
 export const router = createBrowserRouter(
   createRoutesFromElements(
-    // CreateRoutesFromElements function allows you to build route elements declaratively.
-    // Create your routes here, if you want to keep the Navbar and Footer in all views, add your new routes inside the containing Route.
-    // Root, on the contrary, create a sister Route, if you have doubts, try it!
-    // Note: keep in mind that errorElement will be the default page when you don't get a route, customize that page to make your project more attractive.
-    // Note: The child paths of the Layout element replace the Outlet component with the elements contained in the "element" attribute of these child paths.
+// La función CreateRoutesFromElements te permite construir elementos de rutas de forma declarativa.
+// Crea tus rutas aquí; si quieres mantener la Navbar y el Footer en todas las vistas, agrega tus nuevas rutas dentro de la Route contenedora.
+// Root, en cambio, crea una Route hermana; si tienes dudas, ¡pruébalo!
+// Nota: ten en cuenta que errorElement será la página predeterminada cuando no se encuentre una ruta; personaliza esa página para hacer tu proyecto más atractivo.
+// Nota: Las rutas hijas del elemento Layout reemplazan el componente Outlet con los elementos contenidos en el atributo "element" de estas rutas hijas.
 
-    // Root Route: All navigation will start from here.
+// Ruta Root: Toda la navegación empezará desde aquí.
     <Route path="/" element={<Layout />} errorElement={<h1>Not found!</h1>} >
 
-      {/* Nested Routes: Defines sub-routes within the BaseHome component. */}
+      {/* Nested Routes: Define sub-routas dentro del componente base Home. */}
       <Route path="/" element={<Home />} />
-      <Route path="/single/:theId" element={<Single />} />  {/* Dynamic route for single items */}
+      <Route path="/single/:theId" element={<Single />} />  {/* Ruta dinamica para elementos solos */}
       <Route path="/demo" element={<Demo />} />
       <Route path="/register" element={<Register />} />
       <Route path="/login" element={<Login />} />

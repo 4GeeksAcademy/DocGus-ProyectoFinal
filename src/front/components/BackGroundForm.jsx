@@ -2,8 +2,10 @@
 
 import React, { useEffect, useState } from "react";
 
+import FileForm from "./FileForm"; // Ajusta la ruta si tu FileForm está en otro directorio
+
 // Estado inicial con estructura de los antecedentes médicos
-const initialState = {               
+const initialState = {
   patological_background: {                      // Objeto Antecedentes Patologicos
     personal_diseases: "",
     medications: "",
@@ -53,87 +55,142 @@ const initialState = {
     abortions: "",
     contraceptive_method: "",
     others: "",
+  },
+  personal_data: {
+    sex: "",
+    address: "",
   }
 };
 
 
 
 // Componente principal del formulario. Recibe `initialData` y `medicalFileId` como props
-const BackgroundForm = ({initialData, medicalFileId }) => {
-  const [form, setForm] = useState(initialState);                                   // Estado local que contiene el formulario completo
+const BackgroundForm = ({ initialData, medicalFileId }) => {
+  const [form, setForm] = useState(initialState);
 
-// Función que maneja los cambios en los inputs del formulario
-const handleChange = (e, section) => {
-  const { name, value, type, checked } = e.target;
-  const val = type === "checkbox" ? checked : value;
+  const handleChange = (e, section) => {
+    const { name, value, type, checked } = e.target;
+    const val = type === "checkbox" ? checked : value;
 
-  setForm((prevForm) => ({
-    ...prevForm,
-    [section]: {
-      ...prevForm[section],
-      [name]: val,
-    },
-  }));
-};
-
-
-// Función para manejar el envío del formulario  
-  const handleSubmit = async (e) => {
-    const newFormData= { ...form, medical_file_id: medicalFileId };                 // Agrega el ID del expediente
-  e.preventDefault();                                                               // Previene el comportamiento por defecto del formulario                          
-
-// Realiza una solicitud POST al backend con los datos
-  try {
-    const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/backgrounds`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,                   // Agrega el token si usas JWT
+    setForm((prevForm) => ({
+      ...prevForm,
+      [section]: {
+        ...prevForm[section],
+        [name]: val,
       },
-      body: JSON.stringify(newFormData),                                            // Convierte los datos a JSON
-    });
+    }));
+  };
 
-    const data = await response.json();                                             // Obtiene la respuesta
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-// Muestra alertas dependiendo del resultado
-    if (response.ok) {                                                              // Si la respuesta es exitosa 
-      alert("Antecedentes guardados correctamente.");
-    } else {
-      console.error(data);
-      alert("Error al guardar antecedentes.");
+    const user = JSON.parse(localStorage.getItem("user"));
+    const userId = user?.id;
+
+    const newFormData = {
+      ...form,
+      medical_file_id: medicalFileId,
+      user_id: userId, // 👈 agregado según tu solicitud
+    };
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/backgrounds`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify(newFormData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error("Error en antecedentes:", data);
+        alert("Error al guardar antecedentes.");
+        return;
+      }
+
+      const personalDataResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/personal_data`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({
+          ...form.personal_data,
+          medical_file_id: medicalFileId,
+        }),
+      });
+
+      const personalData = await personalDataResponse.json();
+
+      if (!personalDataResponse.ok) {
+        console.error("Error en datos personales:", personalData);
+        alert("Error al guardar datos personales.");
+        return;
+      }
+
+      alert("Antecedentes y datos personales guardados correctamente.");
+    } catch (err) {
+      console.error("Error de conexión:", err);
+      alert("Error de conexión con el servidor.");
     }
-  } catch (err) {
-    console.error(err);
-    alert("Error de conexión con el servidor.");
-  }
-};
+  };
 
-// useEffect se ejecuta cuando `initialData` cambia
   useEffect(() => {
     if (initialData) {
-      setForm({ ...initialState, ...initialData });                               // Carga datos iniciales en el formulario
+      setForm({ ...initialState, ...initialData });
     }
   }, [initialData]);
-console.log(form)                                                                 // Para depuración: muestra el estado actual del formulario en consola
+
+  console.log(form);                                                              // Para depuración: muestra el estado actual del formulario en consola
 
 
 
 
-// Formulario principal con clases de Bootstrap
-  return (                            
+  // Formulario principal con clases de Bootstrap
+  return (
     <form onSubmit={handleSubmit} className="row p-4 rounded shadow-md max-w-5xl mx-auto" data-bs-theme="dark">
       <h2 className="text-2xl font-bold mb-4">Antecedentes Médicos del Paciente</h2>
 
-      
-      
-      
-      
+
+
+      {/* ---------- PERSONAL DATA ---------- */}
+      <h4 className="mt-4 mb-2 text-lg font-semibold">Datos Personales</h4>
+
+      <div className="mb-2 col-6">
+        <label className="block">Sexo</label>
+        <select
+          name="sex"
+          value={form.personal_data.sex}
+          onChange={(e) => handleChange(e, "personal_data")}
+          className="form-control"
+        >
+          <option value="">Selecciona</option>
+          <option value="masculino">Masculino</option>
+          <option value="femenino">Femenino</option>
+          <option value="otro">Otro</option>
+        </select>
+      </div>
+
+      <div className="mb-2 col-6">
+        <label className="block">Dirección</label>
+        <textarea
+          name="address"
+          value={form.personal_data.address}
+          onChange={(e) => handleChange(e, "personal_data")}
+          className="form-control"
+        />
+      </div>
+
+
       {/* ---------- PATHOLOGICAL BACKGROUND ---------- */}
       <h4 className="mt-4 mb-2 text-lg font-semibold">Antecedentes Patológicos</h4>
       {["personal_diseases", "medications", "hospitalizations", "surgeries", "traumatisms", "transfusions", "allergies", "others"].map((field) => (
         <div key={field} className="mb-2 col-6">
           <label className="block">{field.replace(/_/g, " ").replace("others pathological", "Otros")}</label>
-          <textarea name={field} value={form.patological_background[field]} onChange={(e)=> handleChange(e, "patological_background")} className="form-control" />
+          <textarea name={field} value={form.patological_background[field]} onChange={(e) => handleChange(e, "patological_background")} className="form-control" />
         </div>
       ))}
 
@@ -145,13 +202,13 @@ console.log(form)                                                               
       <h4 className="mt-4 mb-2 text-lg font-semibold">Antecedentes Familiares</h4>
       {["hypertension", "diabetes", "cancer", "heart_disease", "kidney_disease", "liver_disease", "mental_illness", "congenital_malformations"].map((field) => (
         <div key={field} className="form-check col-6 mb-2">
-          <input className="form-check-input" type="checkbox" name={field} checked={form.family_background[field]} onChange={(e)=> handleChange(e,"family_background")} />
+          <input className="form-check-input" type="checkbox" name={field} checked={form.family_background[field]} onChange={(e) => handleChange(e, "family_background")} />
           <label className="form-check-label">{field.replace(/_/g, " ")}</label>
         </div>
       ))}
       <div className="mb-2 col-6">
         <label className="block">Otros antecedentes familiares</label>
-        <textarea name="others" value={form.others} onChange={(e)=> handleChange(e,"family_background")} className="form-control" />
+        <textarea name="others" value={form.others} onChange={(e) => handleChange(e, "family_background")} className="form-control" />
       </div>
 
 
@@ -163,12 +220,12 @@ console.log(form)                                                               
       {["education_level", "economic_activity", "marital_status", "dependents", "occupation", "recent_travels", "social_activities", "exercise", "diet_supplements", "hygiene", "hobbies", "tobacco_use", "alcohol_use", "recreational_drugs", "addictions", "others"].map((field) => (
         <div key={field} className="mb-2 col-6">
           <label className="block">{field.replace(/_/g, " ").replace("others nonpath", "Otros")}</label>
-          <textarea name={field} value={form.non_pathological_background[field]} onChange={(e)=> handleChange(e, "non_pathological_background")} className="form-control" />
+          <textarea name={field} value={form.non_pathological_background[field]} onChange={(e) => handleChange(e, "non_pathological_background")} className="form-control" />
         </div>
       ))}
       {["tattoos", "piercings"].map((field) => (
         <div key={field} className="form-check col-6 mb-2">
-          <input className="form-check-input" type="checkbox" name={field} checked={form.non_pathological_background[field]} onChange={(e)=> handleChange(e, "non_pathological_background")} />
+          <input className="form-check-input" type="checkbox" name={field} checked={form.non_pathological_background[field]} onChange={(e) => handleChange(e, "non_pathological_background")} />
           <label className="form-check-label">{field.charAt(0).toUpperCase() + field.slice(1)}</label>
         </div>
       ))}
@@ -182,7 +239,7 @@ console.log(form)                                                               
       {["menarche_age", "pregnancies", "births", "c_sections", "abortions", "contraceptive_method", "others"].map((field) => (
         <div key={field} className="mb-2 col-6">
           <label className="block">{field.replace(/_/g, " ").replace("others gyneco", "Otros")}</label>
-          <input type="text" name={field} value={form.gynecological_background[field]} onChange={(e)=> handleChange(e, "gynecological_background")} className="form-control" />
+          <input type="text" name={field} value={form.gynecological_background[field]} onChange={(e) => handleChange(e, "gynecological_background")} className="form-control" />
         </div>
       ))}
 
